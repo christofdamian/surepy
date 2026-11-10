@@ -1,6 +1,9 @@
 """Offline tests for device properties, using payloads shaped like /api/me/start."""
 
+from datetime import datetime, timezone
+
 from surepy.entities.devices import Curfew, Feeder, Felaqua, Flap, Hub
+from surepy.entities.pet import Pet
 
 STATUS = {
     "battery": 5.49,
@@ -137,3 +140,42 @@ def test_felaqua_tags_and_learn_mode():
 
 def test_learn_mode_unknown_without_status():
     assert Felaqua({**FELAQUA, "status": {}}).learn_mode is None
+
+
+PET = {
+    "id": 10,
+    "household_id": 100,
+    "name": "Rex",
+    "tag_id": 503,
+    "status": {
+        "feeding": {
+            "id": 1,
+            "tag_id": 503,
+            "device_id": 2,
+            "change": [-11.15, 0.06],
+            "at": "2026-11-03T08:07:32+00:00",
+        },
+        "drinking": {
+            "id": 2,
+            "tag_id": 503,
+            "device_id": 4,
+            "change": [-12.7],
+            "at": "2026-10-27T00:14:48+00:00",
+        },
+    },
+}
+
+
+def test_pet_feeding_and_drinking_include_device():
+    pet = Pet(PET)
+
+    assert pet.feeding is not None
+    assert pet.feeding.device_id == 2
+    assert pet.feeding.change == [-11.15, 0.06]
+    assert pet.feeding.at == datetime(2026, 11, 3, 8, 7, 32, tzinfo=timezone.utc)
+    assert pet.drinking is not None
+    assert pet.drinking.device_id == 4
+
+
+def test_pet_without_feeding():
+    assert Pet({**PET, "status": {}}).feeding is None
